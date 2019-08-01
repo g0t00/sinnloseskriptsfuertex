@@ -28,7 +28,7 @@ for (const part of parts) {
     text += `\\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
   }
   const wordPrevious = Math.floor(bitcounter / wordsize);
-  if (Math.floor((bitcounter + part.length) / wordsize) > wordPrevious) {
+  if (Math.floor((bitcounter + part.length - 1) / wordsize) > wordPrevious) {
     const partlength = wordsize - bitcounter % wordsize
     text += `\\bitbox{${partlength}}{${part.name}}\n`;
     bitcounter += partlength;
