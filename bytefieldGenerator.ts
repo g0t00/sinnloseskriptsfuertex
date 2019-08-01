@@ -1,5 +1,5 @@
 import {argv} from 'process';
-import {readFileSync} from 'fs';
+import {readFileSync, writeFileSync} from 'fs';
 import * as CSON from 'cson';
 interface IFile {
   wordsize: number;
@@ -44,4 +44,5 @@ for (const part of parts) {
   }
 }
 text += `\\end{bytefield}`;
+writeFileSync(argv[2].replace(/cson$/i, 'tex'), text);
 console.log(text);
