@@ -39,13 +39,17 @@ for (const part of parts) {
   }
   const wordPrevious = Math.floor(bitcounter / wordsize);
   if (Math.floor((bitcounter + part.length - 1) / wordsize) > wordPrevious) {
-    const partlength = wordsize - bitcounter % wordsize
-    text += `      \\bitbox{${partlength}}{${part.name}}\n`;
-    bitcounter += partlength;
-    text += `    \\end{leftwordgroup} \\\\\n`;
-    text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
-    text += `      \\bitbox{${part.length - partlength}}{${part.name}}\n`;
-    bitcounter += part.length - partlength;
+    if (bitcounter % wordsize === 0 && part.length % wordsize === 0) {
+      text += `      \\wordbox{${part.length / wordsize}}{${part.name}}\n`;
+      bitcounter += part.length;
+    } else {
+      const partlength = wordsize - bitcounter % wordsize
+      text += `      \\bitbox{${partlength}}{${part.name}}\n`;
+      text += `    \\end{leftwordgroup} \\\\\n`;
+      text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
+      text += `      \\bitbox{${part.length - partlength}}{${part.name}}\n`;
+      bitcounter += part.length - partlength;
+    }
   } else {
     text += `      \\bitbox{${part.length}}{${part.name}}\n`;
     bitcounter += part.length;
