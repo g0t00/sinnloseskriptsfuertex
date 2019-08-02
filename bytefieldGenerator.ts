@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import {argv} from 'process';
 import {readFileSync, writeFileSync} from 'fs';
 import * as CSON from 'cson';
