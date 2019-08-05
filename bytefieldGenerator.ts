@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {argv} from 'process';
+import {argv, exit} from 'process';
 import {readFileSync, writeFileSync} from 'fs';
 import * as CSON from 'cson';
 interface IFile {
@@ -27,8 +27,67 @@ console.log(hexlength);
 let text = `\\begin{figure}[h]
   \\hspace{-${1.82 + 0.6 * hexlength}em}
   \\begin{bytefield}[leftcurly=., leftcurlyspace=0pt,bitwidth=${1/wordsize}\\textwidth]{${wordsize}}
-    \\bitheader[b]{${bitheader.join(',')}} \\\\\n`
+    \\bitheader[endianness=big]{${bitheader.join(',')}} \\\\\n`
 let bitcounter = 0;
+// Align starts for multiword packages
+let i = 0;
+while (i < parts.length) {
+  // console.log(i);
+  const part = parts[i];
+  if (part.length <= wordsize) {
+    bitcounter += part.length;
+    i++;
+  } else {
+    if (bitcounter % wordsize !== 0) {
+      const startPart = Object.assign({}, part);
+      startPart.length = wordsize - bitcounter % wordsize;
+      part.length -= startPart.length;
+      startPart.name += '\\ldots';
+      parts.splice(i, 0, startPart);
+      bitcounter += startPart.length;
+      i++;
+      // console.log(parts, bitcounter);
+      // exit();
+    } else {
+      bitcounter += part.length;
+      i++;
+    }
+  }
+}
+console.log(parts);
+// Align end for multiword packages
+i = 0;
+bitcounter = 0;
+while (i < parts.length) {
+  // console.log(i);
+  const part = parts[i];
+  if (part.length <= wordsize) {
+    bitcounter += part.length;
+    i++;
+  } else {
+    if ((bitcounter + part.length) % wordsize !== 0) {
+      const endPart = Object.assign({}, part);
+      endPart.length = (bitcounter + part.length) % wordsize;
+      part.length -= endPart.length;
+      part.name += '\\ldots';
+      parts.splice(i + 1, 0, endPart);
+      bitcounter += part.length;
+      i++;
+      console.log(parts, bitcounter, endPart.length);
+      // exit();
+    } else {
+      bitcounter += part.length;
+      i++;
+    }
+  }
+}
+if (bitcounter % wordsize !== 0) {
+  parts.push({
+    name: '',
+    length: wordsize - bitcounter % wordsize
+  });
+}
+bitcounter = 0;
 for (const part of parts) {
   if (part.footnote) {
     footnoteCounter++;
@@ -36,7 +95,13 @@ for (const part of parts) {
     footnotes.push(part.footnote);
   }
   if (bitcounter % wordsize === 0) {
-    text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
+    if (part.length % wordsize === 0) {
+      text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}\\\\\\texttt{\\hspace{${(hexlength + 1)/2}ex}\\vdots}\\\\\\texttt{0x${((bitcounter + part.length - 8)/8).toString(16).padStart(hexlength, '0')}}}\n`;
+
+    } else {
+      text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
+
+    }
   }
   const wordPrevious = Math.floor(bitcounter / wordsize);
   if (Math.floor((bitcounter + part.length - 1) / wordsize) > wordPrevious) {
@@ -56,7 +121,7 @@ for (const part of parts) {
     bitcounter += part.length;
   }
   if (bitcounter % wordsize === 0) {
-    text += `    \\end{leftwordgroup} \\\\\n`;
+    text += `    \\end{leftwordgroup}\\\\\n`;
   }
 }
 const name = argv[2].replace(/.cson$/i, '');
