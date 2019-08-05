@@ -13,7 +13,7 @@ interface IFile {
   }[]
 }
 let {wordsize, parts, alignbits, caption}: IFile = CSON.parse(readFileSync(argv[2]).toString());
-console.log(wordsize, parts);
+console.log(argv[2].replace('.cson', ''));
 let bitheader = [];
 for (let i = 0; i < wordsize; i += alignbits) {
   bitheader.push(i);
@@ -23,7 +23,7 @@ const length = parts.reduce((accum, part) => accum + part.length, 0);
 const hexlength = Math.ceil(Math.log2(length/8) / Math.log2(16));
 let footnoteCounter = 0;
 let footnotes :string[] = [];
-console.log(hexlength);
+// console.log(hexlength);
 let text = `\\begin{figure}[h]
   \\hspace{-${1.82 + 0.6 * hexlength}em}
   \\begin{bytefield}[leftcurly=., leftcurlyspace=0pt,bitwidth=${1/wordsize}\\textwidth]{${wordsize}}
@@ -61,7 +61,7 @@ bitcounter = 0;
 while (i < parts.length) {
   // console.log(i);
   const part = parts[i];
-  if (part.length < wordsize) {
+  if (part.length + (bitcounter % wordsize) <= wordsize) {
     bitcounter += part.length;
     i++;
   } else {
@@ -73,7 +73,7 @@ while (i < parts.length) {
       parts.splice(i + 1, 0, endPart);
       bitcounter += part.length;
       i++;
-      console.log(parts, bitcounter, endPart.length);
+      // console.log(parts, bitcounter, endPart.length);
       // exit();
     } else {
       bitcounter += part.length;
@@ -95,9 +95,16 @@ for (const part of parts) {
     footnotes.push(part.footnote);
   }
   if (bitcounter % wordsize === 0) {
-    if (part.length % wordsize === 0) {
-      text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}\\\\\\texttt{\\hspace{${(hexlength + 1)/2}ex}\\vdots}\\\\\\texttt{0x${((bitcounter + part.length - 8)/8).toString(16).padStart(hexlength, '0')}}}\n`;
-
+    if (part.length % wordsize === 0 && part.length !== wordsize) {
+      if (part.length === 2 * wordsize) {
+        text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}\\\\[-1ex]
+    \\texttt{\\hspace{${(hexlength + 1)/2}ex}\\vdots}\\\\[-1ex]
+    \\texttt{0x${((bitcounter + part.length - 8)/8).toString(16).padStart(hexlength, '0')}}}\n`;
+      } else {
+        text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}\\\\
+    \\texttt{\\hspace{${(hexlength + 1)/2}ex}\\vdots}\\\\
+    \\texttt{0x${((bitcounter + part.length - 8)/8).toString(16).padStart(hexlength, '0')}}}\n`;
+      }
     } else {
       text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
 
@@ -136,4 +143,4 @@ if (footnoteCounter > 0) {
   }
 }
 writeFileSync(argv[2].replace(/cson$/i, 'tex'), text);
-console.log(text);
+// console.log(text);
