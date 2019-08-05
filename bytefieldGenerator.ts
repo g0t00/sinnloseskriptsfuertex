@@ -34,7 +34,7 @@ let i = 0;
 while (i < parts.length) {
   // console.log(i);
   const part = parts[i];
-  if (part.length <= wordsize) {
+  if (part.length < wordsize) {
     bitcounter += part.length;
     i++;
   } else {
@@ -61,7 +61,7 @@ bitcounter = 0;
 while (i < parts.length) {
   // console.log(i);
   const part = parts[i];
-  if (part.length <= wordsize) {
+  if (part.length < wordsize) {
     bitcounter += part.length;
     i++;
   } else {
