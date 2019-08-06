@@ -24,7 +24,7 @@ const hexlength = Math.ceil(Math.log2(length/8) / Math.log2(16));
 let footnoteCounter = 0;
 let footnotes :string[] = [];
 // console.log(hexlength);
-let text = `\\begin{figure}[h]
+let text = `\\begin{figure}[htp]
   \\hspace{-${1.82 + 0.6 * hexlength}em}
   \\begin{bytefield}[leftcurly=., leftcurlyspace=0pt,bitwidth=${1/wordsize}\\textwidth]{${wordsize}}
     \\bitheader[endianness=big]{${bitheader.join(',')}} \\\\\n`
@@ -102,7 +102,7 @@ for (const part of parts) {
       } else {
         text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}\\\\
     \\texttt{\\hspace{${(hexlength + 1)/2}ex}\\vdots}\\\\
-    \\texttt{0x${((bitcounter + part.length - 8)/8).toString(16).padStart(hexlength, '0')}}}\n`;
+    \\texttt{0x${((bitcounter + part.length - wordsize)/8).toString(16).padStart(hexlength, '0')}}}\n`;
       }
     } else {
       text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
