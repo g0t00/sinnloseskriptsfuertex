@@ -130,7 +130,7 @@ for (const part of parts) {
     text += `    \\end{leftwordgroup}\\\\\n`;
   }
 }
-const name = argv[2].replace(/.cson$/i, '');
+const name = argv[2].replace(/.cson$/i, '').replace(/^.*\//i, '');
 text += `  \\end{bytefield}
   \\caption{${caption}}
   \\label{fig:${name}}
