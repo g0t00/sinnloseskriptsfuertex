@@ -97,9 +97,8 @@ for (const part of parts) {
   if (bitcounter % wordsize === 0) {
     if (part.length % wordsize === 0 && part.length !== wordsize) {
       if (part.length === 2 * wordsize) {
-        text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}\\\\[-1ex]
-    \\texttt{\\hspace{${(hexlength + 1)/2}ex}\\vdots}\\\\[-1ex]
-    \\texttt{0x${((bitcounter + part.length - 8)/8).toString(16).padStart(hexlength, '0')}}}\n`;
+        text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}\\\\[1ex]
+    \\texttt{0x${((bitcounter + part.length - wordsize)/8).toString(16).padStart(hexlength, '0')}}}\n`;
       } else {
         text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}\\\\
     \\texttt{\\hspace{${(hexlength + 1)/2}ex}\\vdots}\\\\
