@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {argv, exit} from 'process';
+import {argv} from 'process';
 import {readFileSync, writeFileSync} from 'fs';
 import * as CSON from 'cson';
 interface IFile {
@@ -49,7 +49,6 @@ const length = parts.reduce((accum, part) => accum + part.length, 0);
 const hexlength = Math.ceil(Math.log2(length/8) / Math.log2(16));
 let footnoteCounter = 0;
 let footnotes :string[] = [];
-// console.log(hexlength);
 let text = `\\begin{figure}[htp]
   \\hspace{-${1.82 + 0.6 * hexlength}em}
   \\begin{bytefield}[leftcurly=., leftcurlyspace=0pt,bitwidth=${1/wordsize}\\textwidth]{${wordsize}}
@@ -58,7 +57,6 @@ let bitcounter = 0;
 // Align starts for multiword packages
 let i = 0;
 while (i < parts.length) {
-  // console.log(i);
   const part = parts[i];
   if (part.length < wordsize) {
     bitcounter += part.length;
@@ -82,20 +80,16 @@ while (i < parts.length) {
       parts.splice(i, 0, startPart);
       bitcounter += startPart.length;
       i++;
-      // console.log(parts, bitcounter);
-      // exit();
     } else {
       bitcounter += part.length;
       i++;
     }
   }
 }
-// console.log(parts);
 // Align end for multiword packages
 i = 0;
 bitcounter = 0;
 while (i < parts.length) {
-  // console.log(i);
   const part = parts[i];
   if (part.length + (bitcounter % wordsize) <= wordsize) {
     bitcounter += part.length;
@@ -112,7 +106,6 @@ while (i < parts.length) {
       } else {
         part.borders = {l: true, r: true, t: true, b: false};
       }
-      // part.name += '\\ldots';
       parts.splice(i + 1, 0, endPart);
       bitcounter += part.length;
       i++;
@@ -136,51 +129,26 @@ for (const part of parts) {
     footnotes.push(part.footnote);
   }
   if (bitcounter % wordsize === 0) {
-    // if (part.length % wordsize === 0 && part.length !== wordsize) {
-    //   if (part.length === 2 * wordsize) {
-    //     text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}\\\\[1ex]
-    // \\texttt{0x${((bitcounter + part.length - wordsize)/8).toString(16).padStart(hexlength, '0')}}}\n`;
-    //   } else {
-    //     text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}\\\\
-    // \\texttt{\\hspace{${(hexlength + 1)/2}ex}\\vdots}\\\\
-    // \\texttt{0x${((bitcounter + part.length - wordsize)/8).toString(16).padStart(hexlength, '0')}}}\n`;
-    //   }
-    // } else {
-      text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
+    text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
 
-    // }
   }
   const wordPrevious = Math.floor(bitcounter / wordsize);
   if (Math.floor((bitcounter + part.length - 1) / wordsize) > wordPrevious) {
-    // if (bitcounter % wordsize === 0 && part.length % wordsize === 0) {
-    // if (part.length / wordsize > 4) {
-      let upperBorder = Object.assign({}, part.borders);
-      upperBorder.b = false;
-      let lowerBorder = Object.assign({}, part.borders);
-      lowerBorder.t = false;
-      let mediumBorder = {l: true, r: true, t: false, b: false};
-      text += `      \\wordbox${bordersToString(upperBorder)}{1}{${part.name}}\n`;
-      text += `    \\end{leftwordgroup}\\\\\n`;
-      if (part.length / wordsize > 4) {
-        text += `      \\skippedwords[1.5ex]\\\\\n`;
-      } else if (part.length / wordsize > 2) {
-        text += `      \\wordbox${bordersToString(mediumBorder)}{${part.length / wordsize - 2}}{}\\\\\n`;
-      }
-      text += `    \\begin{leftwordgroup}{\\texttt{0x${((bitcounter + part.length - wordsize)/8).toString(16).padStart(hexlength, '0')}}}\n`;
-      text += `      \\wordbox${bordersToString(lowerBorder)}{1}{}\n`;
-    // } else {
-    //   text += `      \\wordbox${bordersToString(part.borders)}{${part.length / wordsize}}{${part.name}}\n`;
-    // }
+    let upperBorder = Object.assign({}, part.borders);
+    upperBorder.b = false;
+    let lowerBorder = Object.assign({}, part.borders);
+    lowerBorder.t = false;
+    let mediumBorder = {l: true, r: true, t: false, b: false};
+    text += `      \\wordbox${bordersToString(upperBorder)}{1}{${part.name}}\n`;
+    text += `    \\end{leftwordgroup}\\\\\n`;
+    if (part.length / wordsize > 4) {
+      text += `      \\skippedwords[1.5ex]\\\\\n`;
+    } else if (part.length / wordsize > 2) {
+      text += `      \\wordbox${bordersToString(mediumBorder)}{${part.length / wordsize - 2}}{}\\\\\n`;
+    }
+    text += `    \\begin{leftwordgroup}{\\texttt{0x${((bitcounter + part.length - wordsize)/8).toString(16).padStart(hexlength, '0')}}}\n`;
+    text += `      \\wordbox${bordersToString(lowerBorder)}{1}{}\n`;
     bitcounter += part.length;
-    // } else {
-    //   throw new Error('Help');
-    //   const partlength = wordsize - bitcounter % wordsize
-    //   text += `      \\bitbox${bordersToString(part.borders)}{${partlength}}{${part.name}}\n`;
-    //   text += `    \\end{leftwordgroup} \\\\\n`;
-    //   text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
-    //   text += `      \\bitbox${bordersToString(part.borders)}{${part.length - partlength}}{${part.name}}\n`;
-    //   bitcounter += part.length - partlength;
-    // }
   } else {
     text += `      \\bitbox${bordersToString(part.borders)}{${part.length}}{${part.name}}\n`;
     bitcounter += part.length;
@@ -201,4 +169,3 @@ if (footnoteCounter > 0) {
   }
 }
 writeFileSync(argv[2].replace(/cson$/i, 'tex'), text);
-// console.log(text);
