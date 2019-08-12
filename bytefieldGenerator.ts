@@ -10,8 +10,31 @@ interface IFile {
     name: string;
     length: number;
     footnote?: string;
+    borders?: {
+      l: boolean;
+      r: boolean;
+      t: boolean;
+      b: boolean;
+    };
   }[]
 }
+const bordersToString = (borders?: {
+  l: boolean;
+  r: boolean;
+  t: boolean;
+  b: boolean;
+}) => {
+  if (!borders) {
+    return '';
+  }
+  let result = '[';
+  result += borders.l ? 'l' : '';
+  result += borders.r ? 'r' : '';
+  result += borders.t ? 't' : '';
+  result += borders.b ? 'b' : '';
+  return result + ']';
+};
+
 let {wordsize, parts, alignbits, caption}: IFile = CSON.parse(readFileSync(argv[2]).toString());
 console.log(argv[2].replace('.cson', ''));
 let bitheader = [];
@@ -40,9 +63,19 @@ while (i < parts.length) {
   } else {
     if (bitcounter % wordsize !== 0) {
       const startPart = Object.assign({}, part);
+      if (part.length <= wordsize) {
+        startPart.name += '\\ldots';
+      } else {
+        startPart.name = '';
+      }
       startPart.length = wordsize - bitcounter % wordsize;
+      startPart.borders = {l: true, r: true, t: true, b: false};
       part.length -= startPart.length;
-      startPart.name += '\\ldots';
+      if (part.borders) {
+        part.borders.t = false;
+      } else {
+        part.borders = {l: true, r: true, t: false, b: true};
+      }
       parts.splice(i, 0, startPart);
       bitcounter += startPart.length;
       i++;
@@ -54,7 +87,7 @@ while (i < parts.length) {
     }
   }
 }
-console.log(parts);
+// console.log(parts);
 // Align end for multiword packages
 i = 0;
 bitcounter = 0;
@@ -67,14 +100,19 @@ while (i < parts.length) {
   } else {
     if ((bitcounter + part.length) % wordsize !== 0) {
       const endPart = Object.assign({}, part);
+      endPart.name = '';
       endPart.length = (bitcounter + part.length) % wordsize;
+      endPart.borders = {l: true, r: true, t: false, b: true};
       part.length -= endPart.length;
-      part.name += '\\ldots';
+      if (part.borders) {
+        part.borders.b = false;
+      } else {
+        part.borders = {l: true, r: true, t: true, b: false};
+      }
+      // part.name += '\\ldots';
       parts.splice(i + 1, 0, endPart);
       bitcounter += part.length;
       i++;
-      // console.log(parts, bitcounter, endPart.length);
-      // exit();
     } else {
       bitcounter += part.length;
       i++;
@@ -112,18 +150,28 @@ for (const part of parts) {
   const wordPrevious = Math.floor(bitcounter / wordsize);
   if (Math.floor((bitcounter + part.length - 1) / wordsize) > wordPrevious) {
     if (bitcounter % wordsize === 0 && part.length % wordsize === 0) {
-      text += `      \\wordbox{${part.length / wordsize}}{${part.name}}\n`;
+      if (part.length / wordsize > 4) {
+        let upperBorder = Object.assign({}, part.borders);
+        upperBorder.b = false;
+        let lowerBorder = Object.assign({}, part.borders);
+        lowerBorder.t = false;
+        text += `      \\wordbox${bordersToString(upperBorder)}{1}{${part.name}}\\\\\n`;
+        text += `      \\skippedwords[1.5ex]\\\\\n`;
+        text += `      \\wordbox${bordersToString(lowerBorder)}{1}{}\n`;
+      } else {
+        text += `      \\wordbox${bordersToString(part.borders)}{${part.length / wordsize}}{${part.name}}\n`;
+      }
       bitcounter += part.length;
     } else {
       const partlength = wordsize - bitcounter % wordsize
-      text += `      \\bitbox{${partlength}}{${part.name}}\n`;
+      text += `      \\bitbox${bordersToString(part.borders)}{${partlength}}{${part.name}}\n`;
       text += `    \\end{leftwordgroup} \\\\\n`;
       text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
-      text += `      \\bitbox{${part.length - partlength}}{${part.name}}\n`;
+      text += `      \\bitbox${bordersToString(part.borders)}{${part.length - partlength}}{${part.name}}\n`;
       bitcounter += part.length - partlength;
     }
   } else {
-    text += `      \\bitbox{${part.length}}{${part.name}}\n`;
+    text += `      \\bitbox${bordersToString(part.borders)}{${part.length}}{${part.name}}\n`;
     bitcounter += part.length;
   }
   if (bitcounter % wordsize === 0) {
