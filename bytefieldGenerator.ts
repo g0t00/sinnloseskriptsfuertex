@@ -37,6 +37,9 @@ const bordersToString = (borders?: {
 
 let {wordsize, parts, alignbits, caption}: IFile = CSON.parse(readFileSync(argv[2]).toString());
 console.log(argv[2].replace('.cson', ''));
+for (const part of parts) {
+  part.borders = {l: true, r: true, t: true, b: true};
+}
 let bitheader = [];
 for (let i = 0; i < wordsize; i += alignbits) {
   bitheader.push(i);
@@ -133,43 +136,51 @@ for (const part of parts) {
     footnotes.push(part.footnote);
   }
   if (bitcounter % wordsize === 0) {
-    if (part.length % wordsize === 0 && part.length !== wordsize) {
-      if (part.length === 2 * wordsize) {
-        text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}\\\\[1ex]
-    \\texttt{0x${((bitcounter + part.length - wordsize)/8).toString(16).padStart(hexlength, '0')}}}\n`;
-      } else {
-        text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}\\\\
-    \\texttt{\\hspace{${(hexlength + 1)/2}ex}\\vdots}\\\\
-    \\texttt{0x${((bitcounter + part.length - wordsize)/8).toString(16).padStart(hexlength, '0')}}}\n`;
-      }
-    } else {
+    // if (part.length % wordsize === 0 && part.length !== wordsize) {
+    //   if (part.length === 2 * wordsize) {
+    //     text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}\\\\[1ex]
+    // \\texttt{0x${((bitcounter + part.length - wordsize)/8).toString(16).padStart(hexlength, '0')}}}\n`;
+    //   } else {
+    //     text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}\\\\
+    // \\texttt{\\hspace{${(hexlength + 1)/2}ex}\\vdots}\\\\
+    // \\texttt{0x${((bitcounter + part.length - wordsize)/8).toString(16).padStart(hexlength, '0')}}}\n`;
+    //   }
+    // } else {
       text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
 
-    }
+    // }
   }
   const wordPrevious = Math.floor(bitcounter / wordsize);
   if (Math.floor((bitcounter + part.length - 1) / wordsize) > wordPrevious) {
-    if (bitcounter % wordsize === 0 && part.length % wordsize === 0) {
+    // if (bitcounter % wordsize === 0 && part.length % wordsize === 0) {
+    // if (part.length / wordsize > 4) {
+      let upperBorder = Object.assign({}, part.borders);
+      upperBorder.b = false;
+      let lowerBorder = Object.assign({}, part.borders);
+      lowerBorder.t = false;
+      let mediumBorder = {l: true, r: true, t: false, b: false};
+      text += `      \\wordbox${bordersToString(upperBorder)}{1}{${part.name}}\n`;
+      text += `    \\end{leftwordgroup}\\\\\n`;
       if (part.length / wordsize > 4) {
-        let upperBorder = Object.assign({}, part.borders);
-        upperBorder.b = false;
-        let lowerBorder = Object.assign({}, part.borders);
-        lowerBorder.t = false;
-        text += `      \\wordbox${bordersToString(upperBorder)}{1}{${part.name}}\\\\\n`;
         text += `      \\skippedwords[1.5ex]\\\\\n`;
-        text += `      \\wordbox${bordersToString(lowerBorder)}{1}{}\n`;
-      } else {
-        text += `      \\wordbox${bordersToString(part.borders)}{${part.length / wordsize}}{${part.name}}\n`;
+      } else if (part.length / wordsize > 2) {
+        text += `      \\wordbox${bordersToString(mediumBorder)}{${part.length / wordsize - 2}}{}\\\\\n`;
       }
-      bitcounter += part.length;
-    } else {
-      const partlength = wordsize - bitcounter % wordsize
-      text += `      \\bitbox${bordersToString(part.borders)}{${partlength}}{${part.name}}\n`;
-      text += `    \\end{leftwordgroup} \\\\\n`;
-      text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
-      text += `      \\bitbox${bordersToString(part.borders)}{${part.length - partlength}}{${part.name}}\n`;
-      bitcounter += part.length - partlength;
-    }
+      text += `    \\begin{leftwordgroup}{\\texttt{0x${((bitcounter + part.length - wordsize)/8).toString(16).padStart(hexlength, '0')}}}\n`;
+      text += `      \\wordbox${bordersToString(lowerBorder)}{1}{}\n`;
+    // } else {
+    //   text += `      \\wordbox${bordersToString(part.borders)}{${part.length / wordsize}}{${part.name}}\n`;
+    // }
+    bitcounter += part.length;
+    // } else {
+    //   throw new Error('Help');
+    //   const partlength = wordsize - bitcounter % wordsize
+    //   text += `      \\bitbox${bordersToString(part.borders)}{${partlength}}{${part.name}}\n`;
+    //   text += `    \\end{leftwordgroup} \\\\\n`;
+    //   text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
+    //   text += `      \\bitbox${bordersToString(part.borders)}{${part.length - partlength}}{${part.name}}\n`;
+    //   bitcounter += part.length - partlength;
+    // }
   } else {
     text += `      \\bitbox${bordersToString(part.borders)}{${part.length}}{${part.name}}\n`;
     bitcounter += part.length;
