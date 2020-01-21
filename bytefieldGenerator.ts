@@ -47,10 +47,9 @@ for (let i = 0; i < wordsize; i += alignbits) {
 bitheader.push(wordsize - 1);
 const length = parts.reduce((accum, part) => accum + part.length, 0);
 const hexlength = Math.ceil(Math.log2(length/8) / Math.log2(16));
-let footnoteCounter = 0;
-let footnotes :string[] = [];
 let text = `\\begin{figure}[htp]
   \\hspace{-${1.82 + 0.6 * hexlength}em}
+  \\begin{minipage}{\\textwidth}
   \\begin{bytefield}[leftcurly=., leftcurlyspace=0pt,bitwidth=${1/wordsize}\\textwidth]{${wordsize}}
     \\bitheader[endianness=big]{${bitheader.join(',')}} \\\\\n`
 let bitcounter = 0;
@@ -124,9 +123,7 @@ if (bitcounter % wordsize !== 0) {
 bitcounter = 0;
 for (const part of parts) {
   if (part.footnote) {
-    footnoteCounter++;
-    part.name += '\\footnotemark{}'
-    footnotes.push(part.footnote);
+    part.name += `\\footnote{${part.footnote}}`
   }
   if (bitcounter % wordsize === 0) {
     text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
@@ -159,13 +156,10 @@ for (const part of parts) {
 }
 const name = argv[2].replace(/.cson$/i, '').replace(/^.*\//i, '');
 text += `  \\end{bytefield}
+\\renewcommand*\\footnoterule{}
+
+  \\end{minipage}
   \\caption{${caption}}
   \\label{fig:${name}}
 \\end{figure}\n`;
-if (footnoteCounter > 0) {
-  text += `\\addtocounter{footnote}{-${footnoteCounter}}\n`
-  for (const fn of footnotes) {
-    text += `\\stepcounter{footnote}\\footnotetext{${fn}}\n`
-  }
-}
 writeFileSync(argv[2].replace(/cson$/i, 'tex'), text);
