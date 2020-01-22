@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import {argv} from 'process';
 import {readFileSync, writeFileSync} from 'fs';
+
 import * as CSON from 'cson';
+import { dirname } from 'path';
 interface IFile {
   wordsize: number;
   alignbits: number;
@@ -10,6 +12,7 @@ interface IFile {
     name: string;
     length: number;
     footnote?: string;
+    include?: string;
     borders?: {
       l: boolean;
       r: boolean;
@@ -36,6 +39,13 @@ const bordersToString = (borders?: {
 };
 
 let {wordsize, parts, alignbits, caption}: IFile = CSON.parse(readFileSync(argv[2]).toString());
+const dir = dirname(argv[2]);
+for (const [index, part] of parts.entries()) {
+  if (typeof part.include !== 'undefined') {
+    let { parts: partsNew }: IFile = CSON.parse(readFileSync(`${dir}/${part.include}.cson`).toString());
+    parts.splice(index, 1, ...partsNew);
+  }
+}
 console.log(argv[2].replace('.cson', ''));
 for (const part of parts) {
   part.borders = {l: true, r: true, t: true, b: true};
@@ -70,6 +80,7 @@ while (i < parts.length) {
       }
       startPart.length = wordsize - bitcounter % wordsize;
       startPart.borders = {l: true, r: true, t: true, b: false};
+      delete part.footnote;
       part.length -= startPart.length;
       if (part.borders) {
         part.borders.t = false;
@@ -123,11 +134,10 @@ if (bitcounter % wordsize !== 0) {
 bitcounter = 0;
 for (const part of parts) {
   if (part.footnote) {
-    part.name += `\\footnote{${part.footnote}}`
+    part.name += `\\footnote{${part.footnote}}`;
   }
   if (bitcounter % wordsize === 0) {
     text += `    \\begin{leftwordgroup}{\\texttt{0x${(bitcounter/8).toString(16).padStart(hexlength, '0')}}}\n`;
-
   }
   const wordPrevious = Math.floor(bitcounter / wordsize);
   if (Math.floor((bitcounter + part.length - 1) / wordsize) > wordPrevious) {
