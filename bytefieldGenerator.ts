@@ -8,6 +8,8 @@ interface IFile {
   wordsize: number;
   alignbits: number;
   caption: string;
+  width?: number;
+  subfigure?: boolean;
   parts: {
     name: string;
     length: number;
@@ -38,7 +40,10 @@ const bordersToString = (borders?: {
   return result + ']';
 };
 
-let {wordsize, parts, alignbits, caption}: IFile = CSON.parse(readFileSync(argv[2]).toString());
+let { wordsize, parts, alignbits, caption, width, subfigure}: IFile = CSON.parse(readFileSync(argv[2]).toString());
+if (typeof width === 'undefined') {
+  width = 1;
+}
 const dir = dirname(argv[2]);
 for (const [index, part] of parts.entries()) {
   if (typeof part.include !== 'undefined') {
@@ -57,10 +62,10 @@ for (let i = 0; i < wordsize; i += alignbits) {
 bitheader.push(wordsize - 1);
 const length = parts.reduce((accum, part) => accum + part.length, 0);
 const hexlength = Math.ceil(Math.log2(length/8) / Math.log2(16));
-let text = `\\begin{figure}[htp]
+let text = `\\begin{${subfigure === true ? 'subfigure' : 'figure'}}[${subfigure === true ? 'b' : 'htp'}]${subfigure === true ? `{${width}\\textwidth}` : ''}
   \\hspace{-${1.82 + 0.6 * hexlength}em}
-  \\begin{minipage}{\\textwidth}
-  \\begin{bytefield}[leftcurly=., leftcurlyspace=0pt,bitwidth=${1/wordsize}\\textwidth]{${wordsize}}
+  \\begin{minipage}{${subfigure === true ? 1 : width}\\textwidth}
+  \\begin{bytefield}[leftcurly=., leftcurlyspace=0pt,bitwidth=${1/wordsize }\\textwidth]{${wordsize}}
     \\bitheader[endianness=big]{${bitheader.join(',')}} \\\\\n`
 let bitcounter = 0;
 // Align starts for multiword packages
@@ -171,5 +176,5 @@ text += `  \\end{bytefield}
   \\end{minipage}
   \\caption{${caption}}
   \\label{fig:${name}}
-\\end{figure}\n`;
+\\end{${subfigure === true ? 'subfigure' : 'figure'}}\n`;
 writeFileSync(argv[2].replace(/cson$/i, 'tex'), text);
